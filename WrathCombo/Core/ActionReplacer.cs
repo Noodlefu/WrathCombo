@@ -142,8 +142,8 @@ internal sealed class ActionReplacer : IDisposable
                 Player.Object is null ||
                 !GenericHelpers.IsScreenReady() ||
                 !Svc.ClientState.IsLoggedIn ||
-                (DisabledJobsPVE.Any(x => x == Player.Job) && !Svc.ClientState.IsPvP) ||
-                (DisabledJobsPVP.Any(x => x == Player.Job) && Svc.ClientState.IsPvP))
+                (DisabledJobsPVE.Contains(Player.Job) && !Svc.ClientState.IsPvP) ||
+                (DisabledJobsPVP.Contains(Player.Job) && Svc.ClientState.IsPvP))
                 return OriginalHook(actionID);
 
             foreach (CustomCombo? combo in FilteredCombos)
@@ -208,17 +208,19 @@ internal sealed class ActionReplacer : IDisposable
 
     #region Restrict combos to current job
 
-    public static IEnumerable<CustomCombo>? FilteredCombos;
+    public static CustomCombo[]? FilteredCombos;
 
     public void UpdateFilteredCombos()
     {
         FilteredCombos = CustomCombos.Where(x =>
-            x.Preset.Attributes() is not null && x.Preset.Attributes().IsPvP == CustomComboFunctions.InPvP() &&
-            ((x.Preset.Attributes().RoleAttribute is not null && x.Preset.Attributes().RoleAttribute.PlayerIsRole()) ||
-             x.Preset.Attributes().CustomComboInfo.Job == Player.Job.GetUpgradedJob()));
-        var filteredCombos = FilteredCombos as CustomCombo[] ?? FilteredCombos.ToArray();
+        {
+            var attrs = x.Preset.Attributes();
+            return attrs is not null && attrs.IsPvP == CustomComboFunctions.InPvP() &&
+                ((attrs.RoleAttribute is not null && attrs.RoleAttribute.PlayerIsRole()) ||
+                 attrs.CustomComboInfo.Job == Player.Job.GetUpgradedJob());
+        }).ToArray();
         Svc.Log.Debug(
-            $"Now running {filteredCombos.Count()} combos\n{string.Join("\n", filteredCombos.Select(x => x.Preset.Attributes().CustomComboInfo.Name))}");
+            $"Now running {FilteredCombos.Length} combos\n{string.Join("\n", FilteredCombos.Select(x => x.Preset.Attributes().CustomComboInfo.Name))}");
     }
 
     #endregion

@@ -131,8 +131,35 @@ internal class Presets : ConfigWindow
         return retargetAttribute.RetargetedActions;
     }
 
-    internal static Dictionary<Preset, bool> GetJobAutorots => P
-        .IPCSearch.AutoActions.Where(x => x.Key.Attributes().IsPvP == CustomComboFunctions.InPvP() && (Player.Job == x.Key.Attributes().CustomComboInfo.Job || Player.Job.GetUpgradedJob() == x.Key.Attributes().CustomComboInfo.Job) && x.Value && CustomComboFunctions.IsEnabled(x.Key) && x.Key.Attributes().Parent == null).ToDictionary();
+    private static Dictionary<Preset, bool>? _cachedJobAutorots;
+    private static long _jobAutorotsFrame;
+
+    internal static Dictionary<Preset, bool> GetJobAutorots
+    {
+        get
+        {
+            var currentFrame = Environment.TickCount64;
+            if (_cachedJobAutorots is not null && _jobAutorotsFrame == currentFrame)
+                return _cachedJobAutorots;
+
+            var inPvP = CustomComboFunctions.InPvP();
+            var upgradedJob = Player.Job.GetUpgradedJob();
+            _cachedJobAutorots = P.IPCSearch.AutoActions
+                .Where(x =>
+                {
+                    var attrs = x.Key.Attributes();
+                    return attrs is not null &&
+                           attrs.IsPvP == inPvP &&
+                           (Player.Job == attrs.CustomComboInfo.Job || upgradedJob == attrs.CustomComboInfo.Job) &&
+                           x.Value &&
+                           CustomComboFunctions.IsEnabled(x.Key) &&
+                           attrs.Parent == null;
+                })
+                .ToDictionary();
+            _jobAutorotsFrame = currentFrame;
+            return _cachedJobAutorots;
+        }
+    }
 
     internal static void DrawPreset(Preset preset, CustomComboInfoAttribute info)
     {
@@ -593,7 +620,7 @@ internal class Presets : ConfigWindow
     private static bool DrawOccultJobIcon(Preset? preset, int? jobID = null)
     {
         int baseJobID;
-        if (preset is {} realPreset)
+        if (preset is { } realPreset)
         {
             if (realPreset.Attributes().OccultCrescentJob == null) return false;
             baseJobID = realPreset.Attributes().OccultCrescentJob.JobId;

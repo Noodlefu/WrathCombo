@@ -124,6 +124,9 @@ internal unsafe class AutoRotationController
         if (ShouldSkipAutorotation())
             return;
 
+        // Invalidate per-frame caches at the start of each tick
+        DPSTargeting.InvalidateCache();
+
         uint _ = 0;
         var autoActions = Presets.GetJobAutorots;
 
@@ -151,10 +154,10 @@ internal unsafe class AutoRotationController
 
         bool aoeheal = isHealer
                        && HealerTargeting.CanAoEHeal()
-                       && autoActions.Any(x => x.Key.Attributes()?.AutoAction?.IsHeal == true && x.Key.Attributes()?.AutoAction?.IsAoE == true);
+                       && autoActions.Any(x => { var a = x.Key.Attributes()?.AutoAction; return a?.IsHeal == true && a?.IsAoE == true; });
 
         bool needsHeal = ((healTarget != null
-                           && autoActions.Any(x => x.Key.Attributes()?.AutoAction?.IsHeal == true && x.Key.Attributes()?.AutoAction?.IsAoE != true))
+                           && autoActions.Any(x => { var a = x.Key.Attributes()?.AutoAction; return a?.IsHeal == true && a?.IsAoE != true; }))
                           || aoeheal)
                          && isHealer;
 
@@ -861,6 +864,12 @@ internal unsafe class AutoRotationController
 
     public class DPSTargeting
     {
+        private static IGameObject[]? _cachedBaseSelection;
+        private static long _baseSelectionFrame;
+
+        /// <summary> Invalidates the cached BaseSelection. Call at the start of each auto-rotation tick. </summary>
+        internal static void InvalidateCache() => _baseSelectionFrame = 0;
+
         private static bool Query(IGameObject x) =>
             x is IBattleChara chara &&
             !chara.IsDead &&
@@ -873,9 +882,22 @@ internal unsafe class AutoRotationController
             ((cfg.DPSSettings.OnlyAttackInCombat && chara.Struct()->InCombat) || !cfg.DPSSettings.OnlyAttackInCombat) &&
             IsInLineOfSight(chara);
 
-        public static IEnumerable<IGameObject> BaseSelection => Svc.Objects.Any(x => Query(x) && IsPriority(x))
-            ? Svc.Objects.Where(x => Query(x) && IsPriority(x))
-            : Svc.Objects.Where(x => Query(x));
+        public static IReadOnlyList<IGameObject> BaseSelection
+        {
+            get
+            {
+                var currentFrame = Environment.TickCount64;
+                if (_cachedBaseSelection is not null && _baseSelectionFrame == currentFrame)
+                    return _cachedBaseSelection;
+
+                var priorityTargets = Svc.Objects.Where(x => Query(x) && IsPriority(x)).ToArray();
+                _cachedBaseSelection = priorityTargets.Length > 0
+                    ? priorityTargets
+                    : Svc.Objects.Where(x => Query(x)).ToArray();
+                _baseSelectionFrame = currentFrame;
+                return _cachedBaseSelection;
+            }
+        }
 
         private static bool IsPriority(IGameObject x)
         {

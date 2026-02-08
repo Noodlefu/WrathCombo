@@ -24,7 +24,7 @@ namespace WrathCombo.Data.Conflicts;
 public static class ConflictingPluginsChecks
 {
     private static bool _cancelConflictChecks;
-    
+
     internal static readonly Action ForceRunChecks = () =>
     {
         if (_cancelConflictChecks)
@@ -49,18 +49,22 @@ public static class ConflictingPluginsChecks
         if (_cancelConflictChecks)
             return;
 
-        PluginLog.Verbose(
-            "[ConflictingPlugins] Periodic check for conflicting plugins");
+        // Only run checks while the config window is open
+        if (P?.ConfigWindow?.IsOpen == true)
+        {
+            PluginLog.Verbose(
+                "[ConflictingPlugins] Periodic check for conflicting plugins");
 
-        BossMod.CheckForConflict();
-        BossModReborn.CheckForConflict();
-        Redirect.CheckForConflict();
-        ReAction.CheckForConflict();
-        ReActionEx.CheckForConflict();
-        MOAction.CheckForConflict();
-        Wrath.CheckForConflict();
-        XIV.CheckForConflict();
-        Dalamud.CheckForConflict();
+            BossMod.CheckForConflict();
+            BossModReborn.CheckForConflict();
+            Redirect.CheckForConflict();
+            ReAction.CheckForConflict();
+            ReActionEx.CheckForConflict();
+            MOAction.CheckForConflict();
+            Wrath.CheckForConflict();
+            XIV.CheckForConflict();
+            Dalamud.CheckForConflict();
+        }
 
         Svc.Framework.RunOnTick(RunChecks!, TS.FromSeconds(4.11));
     };
@@ -269,7 +273,7 @@ public static class ConflictingPluginsChecks
                 MarkConflict();
                 conflictedThisCheck = true;
             }
-            
+
             // Check if all Hostile Actions are redirected
             if (IPC.AreHostileActionsRedirected() &&
                 wrathRetargeted.Any(x => x.IsEnemyTargetable()))
@@ -468,9 +472,9 @@ public static class ConflictingPluginsChecks
             }
             PluginLog.Verbose(
                 $"[ConflictingPlugins] [{Name}] `UIConfig.DoublePressGroundActions`: {doublePressGroundActions}");
-            
+
             var wrathRetargeted = PresetStorage.AllRetargetedActions.ToHashSet();
-            
+
             GroundTargetingPlacementConflicted =
                 doublePressGroundActions &&
                 wrathRetargeted.Any(x => x.IsGroundTargeted());
@@ -496,7 +500,7 @@ public static class ConflictingPluginsChecks
             }
             PluginLog.Verbose(
                 $"[ConflictingPlugins] [{Name}] `UIControl.AutoFace`: {autoFaceEnabled}");
-            
+
             AutoFaceTargetConflicted = !autoFaceEnabled;
 
             #endregion
@@ -524,13 +528,13 @@ public static class ConflictingPluginsChecks
 
             var wrathNumberAutoModePresetsOnJob = Presets.GetJobAutorots
                 .Count(x => x.Value);
-            
+
             PluginLog.Verbose(
-                $"[ConflictingPlugins] [{Name}] `ActionReplacing`: " + 
+                $"[ConflictingPlugins] [{Name}] `ActionReplacing`: " +
                 $"{Service.Configuration.ActionChanging}, " +
                 $"`NumberAuto-ModeCombosOnJob`: " +
                 $"{wrathNumberAutoModePresetsOnJob}");
-            
+
             ActionReplacingOffNoAutos =
                 !Service.Configuration.ActionChanging &&
                 wrathNumberAutoModePresetsOnJob < 1 &&
@@ -544,14 +548,14 @@ public static class ConflictingPluginsChecks
             var wrathNumberPvPPresetsOnJob = filteredCombos
                 .Count(x => x.Preset.Attributes() is not null &&
                             x.Preset.Attributes().IsPvP);
-            
+
             PluginLog.Verbose(
-                $"[ConflictingPlugins] [{Name}] `ActionReplacing`: " + 
+                $"[ConflictingPlugins] [{Name}] `ActionReplacing`: " +
                 $"{Service.Configuration.ActionChanging}, " +
                 $"`NumberPvPCombosOnJob`: " +
                 $"{wrathNumberAutoModePresetsOnJob}," +
                 $"`InPvP`: {ContentCheck.IsInPVPContent}");
-            
+
             ActionReplacingOffInPvP =
                 !Service.Configuration.ActionChanging &&
                 wrathNumberPvPPresetsOnJob > 0 &&

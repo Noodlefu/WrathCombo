@@ -138,11 +138,18 @@ internal class ConfigWindow : Dalamud.Interface.Windowing.Window
 
         DrawCollapseButton();
     }
-    
+
     public static void ClearAnySearches()
     {
         Search = string.Empty;
         SearchDescription = true;
+    }
+
+    public override void OnOpen()
+    {
+        // Run conflict checks immediately when the window opens
+        Svc.Framework.RunOnTick(ConflictingPluginsChecks.ForceRunChecks);
+        base.OnOpen();
     }
 
     public override void OnClose()
@@ -271,7 +278,8 @@ internal class ConfigWindow : Dalamud.Interface.Windowing.Window
             case OpenWindow.AutoRotation:
                 AutoRotationTab.Draw();
                 break;
-        };
+        }
+        ;
     }
 
     private static void DrawCollapseButton()

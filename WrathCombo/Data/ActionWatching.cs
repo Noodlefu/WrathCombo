@@ -47,6 +47,21 @@ public static class ActionWatching
     internal static readonly Dictionary<uint, long> LastSuccessfulUseTime = [];
     internal static readonly Dictionary<(uint, ulong), long> UsedOnDict = [];
 
+    // Cached party member lookup for ReceiveActionEffectDetour
+    private static Dictionary<ulong, WrathPartyMember>? _partyMemberLookup;
+    private static long _partyMemberLookupFrame;
+
+    private static Dictionary<ulong, WrathPartyMember> GetPartyMemberLookup()
+    {
+        var currentFrame = Environment.TickCount64;
+        if (_partyMemberLookup is not null && currentFrame - _partyMemberLookupFrame < 500)
+            return _partyMemberLookup;
+
+        _partyMemberLookup = GetPartyMembers().ToDictionary(x => x.GameObjectId);
+        _partyMemberLookupFrame = currentFrame;
+        return _partyMemberLookup;
+    }
+
     // Lists
     internal readonly static List<uint> WeaveActions = [];
     internal readonly static List<uint> CombatActions = [];
@@ -119,7 +134,7 @@ public static class ActionWatching
             var actionType = header->ActionType;
             var currentTick = Environment.TickCount64;
             var playerObjectId = LocalPlayer.GameObjectId;
-            var partyMembers = GetPartyMembers().ToDictionary(x => x.GameObjectId);
+            var partyMembers = GetPartyMemberLookup();
 #if DEBUG
             var debugObjectTable = Svc.Objects;
             var debugActionName = actionId.ActionName();
@@ -429,7 +444,7 @@ public static class ActionWatching
             if (actionType is ActionType.Action)
             {
                 if (mode == ActionManager.UseActionMode.Queue) // This is so we can remove queue suppression
-                    Service.ActionReplacer.DisableActionReplacingIfRequired(); // It gets re-enabled at the end of sending. 
+                    Service.ActionReplacer.DisableActionReplacingIfRequired(); // It gets re-enabled at the end of sending.
 
                 var original = actionId; //Save the original action, do not modify
                 var originalTargetId = targetId; //Save the original target, do not modify
@@ -491,7 +506,7 @@ public static class ActionWatching
 
                     // Only sets the queued target once if overwrite is not enabled, otherwise will update each button press
                     if (actionManager->QueuedTargetId.Id == 0 || Service.Configuration.OverwriteQueue)
-                    actionManager->QueuedTargetId = changedTargetId;
+                        actionManager->QueuedTargetId = changedTargetId;
                 }
 
                 Svc.Log.Verbose($"[QueuedTargetUpdate] A:{actionManager->QueuedActionId.ActionName()} Q:{Svc.Objects.SearchById(actionManager->QueuedTargetId)?.Name} T:{Svc.Objects.SearchById(targetId)?.Name} M:{mode} W:{willQueue}");

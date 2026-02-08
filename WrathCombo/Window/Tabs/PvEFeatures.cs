@@ -56,7 +56,7 @@ internal class PvEFeatures : FeaturesWindow
                         var id = groupedPresets[job].First().Info.Job;
                         IDalamudTextureWrap? icon = Icons.GetJobIcon(id);
                         ImGuiEx.Spacing(new Vector2(0, 2f.Scale()));
-                        using (var disabled = ImRaii.Disabled(DisabledJobsPVE.Any(x => x == id)))
+                        using (var disabled = ImRaii.Disabled(DisabledJobsPVE.Contains(id)))
                         {
                             if (ImGui.Selectable($"###{header}", OpenJob == job, ImGuiSelectableFlags.None, new Vector2(0, IconMaxSize)))
                             {
@@ -101,7 +101,7 @@ internal class PvEFeatures : FeaturesWindow
                 DrawHeader(id);
                 DrawSearchBar();
                 ImGuiEx.Spacing(new Vector2(0, 10));
-                
+
                 using var content = ImRaii.Child("Content", Vector2.Zero);
                 if (!content)
                     return;
@@ -284,7 +284,7 @@ internal class PvEFeatures : FeaturesWindow
             if (IsSearching && !PresetMatchesSearch(preset))
                 continue;
             alreadyShown.Add(preset);
-            
+
             InfoBox presetBox = new() { ContentsOffset = 5f.Scale(), ContentsAction = () => { Presets.DrawPreset(preset, info); } };
 
             if (Service.Configuration.HideConflictedCombos && !IsSearching)

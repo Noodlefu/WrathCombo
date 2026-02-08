@@ -104,7 +104,7 @@ internal class PvPFeatures : FeaturesWindow
                         var id = groupedPresets[job].First().Info.Job;
                         IDalamudTextureWrap? icon = Icons.GetJobIcon(id);
                         ImGuiEx.Spacing(new Vector2(0, 2f.Scale()));
-                        using (var disabled = ImRaii.Disabled(DisabledJobsPVP.Any(x => x == id)))
+                        using (var disabled = ImRaii.Disabled(DisabledJobsPVP.Contains(id)))
                         {
                             if (ImGui.Selectable($"###{header}", OpenPvPJob == job, ImGuiSelectableFlags.None, new Vector2(0, IconMaxSize)))
                             {
@@ -235,7 +235,8 @@ internal class PvPFeatures : FeaturesWindow
             }
 
             // Show error message if still nothing was found
-            if (CurrentPreset == 1) {
+            if (CurrentPreset == 1)
+            {
                 ImGuiEx.LineCentered(() =>
                 {
                     ImGui.TextUnformatted("Nothing matched your search.");
