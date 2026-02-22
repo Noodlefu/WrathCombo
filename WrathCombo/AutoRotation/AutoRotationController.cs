@@ -658,14 +658,15 @@ internal unsafe class AutoRotationController
             }
             else
             {
+                var baseSelection = DPSTargeting.BaseSelection;
                 var target = !cfg.DPSSettings.AoEIgnoreManual && cfg.DPSRotationMode == DPSRotationMode.Manual ?
-                    Svc.Targets.Target : DPSTargeting.BaseSelection.MaxBy(x => NumberOfEnemiesInRange(OriginalHook(gameAct), x, true));
+                    Svc.Targets.Target : baseSelection.MaxBy(x => NumberOfEnemiesInRange(OriginalHook(gameAct), x, true, baseSelection));
 
                 if (!NIN.InMudra)
                 {
                     var st = GetSingleTarget(mode);
-                    var maxHit = NumberOfEnemiesInRange(OriginalHook(gameAct), target, true);
-                    var singleTargetModeTarget = NumberOfEnemiesInRange(OriginalHook(gameAct), st, true);
+                    var maxHit = NumberOfEnemiesInRange(OriginalHook(gameAct), target, true, baseSelection);
+                    var singleTargetModeTarget = NumberOfEnemiesInRange(OriginalHook(gameAct), st, true, baseSelection);
 
                     if (singleTargetModeTarget >= maxHit)
                         target = st;

@@ -5,6 +5,7 @@ using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Common.Component.BGCollision;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -42,7 +43,7 @@ internal abstract partial class CustomComboFunctions
 
     /// <summary> Checks if an object is dead. Defaults to CurrentTarget unless specified. </summary>
     internal static bool TargetIsDead(IGameObject? optionalTarget = null) => (optionalTarget ?? CurrentTarget) is IBattleChara chara && chara.IsDead;
-    
+
     /// Enemies that are definitely not bosses and should not be considered as such.
     private static readonly uint[] EnemiesThatShouldNotBeConsideredBosses =
     [
@@ -59,7 +60,7 @@ internal abstract partial class CustomComboFunctions
 
         if (EnemiesThatShouldNotBeConsideredBosses.Contains(chara.BaseId))
             return false;
-        
+
         return chara.NameId == 541 || ActionWatching.BossesBaseIds.Contains(chara.BaseId);
     }
 
@@ -354,7 +355,7 @@ internal abstract partial class CustomComboFunctions
     ///     (Optional, defaults to <see cref="CurrentTarget" />)
     /// </param>
     /// <param name="checkIgnoredList">
-    ///     Whether to check the 
+    ///     Whether to check the
     ///     <see cref="Configuration.IgnoredNPCs"/> list. <br />
     ///     (Optional, defaults to false)
     /// </param>
@@ -362,7 +363,8 @@ internal abstract partial class CustomComboFunctions
     ///     Number of enemies within the specified action's range.
     /// </returns>
     public static int NumberOfEnemiesInRange
-        (uint aoeSpell, IGameObject? target = null, bool checkIgnoredList = false)
+        (uint aoeSpell, IGameObject? target = null, bool checkIgnoredList = false,
+         IReadOnlyList<IGameObject>? preFilteredEnemies = null)
     {
         if (!ActionWatching.ActionSheet.TryGetValue(aoeSpell, out var sheetSpell))
             return 0;
@@ -377,13 +379,13 @@ internal abstract partial class CustomComboFunctions
             1 => 1,
             2 => sheetSpell.CanTargetSelf
                 ? NumberOfObjectsInRange<SelfCircle>(sheetSpell.EffectRange,
-                    checkIgnoredList: checkIgnoredList)
+                    checkIgnoredList: checkIgnoredList, preFilteredTargets: preFilteredEnemies)
                 : NumberOfObjectsInRange<Circle>(sheetSpell.EffectRange, target,
-                    checkIgnoredList: checkIgnoredList),
+                    checkIgnoredList: checkIgnoredList, preFilteredTargets: preFilteredEnemies),
             3 => NumberOfObjectsInRange<Cone>(sheetSpell.Range, target,
-                checkIgnoredList: checkIgnoredList),
+                checkIgnoredList: checkIgnoredList, preFilteredTargets: preFilteredEnemies),
             4 => NumberOfObjectsInRange<Line>(sheetSpell.Range, target,
-                sheetSpell.XAxisModifier, checkIgnoredList: checkIgnoredList),
+                sheetSpell.XAxisModifier, checkIgnoredList: checkIgnoredList, preFilteredTargets: preFilteredEnemies),
             _ => 0,
         };
 
@@ -438,10 +440,13 @@ internal abstract partial class CustomComboFunctions
     /// <summary> Checks if an object is within line of sight of the player. </summary>
     internal static unsafe bool IsInLineOfSight(IGameObject? obj)
     {
-        var objID = obj.SafeGameObjectId;
-        if (LocalPlayer is not { } player || obj is null || objID is null)
+        if (obj is null || LocalPlayer is not { } player)
             return false;
-        
+
+        var objID = obj.GameObjectId;
+        if (objID is 0 or 0xE0000000)
+            return false;
+
         if (TryGetLineOfSightFromCache(objID, out var cachedResult))
             return cachedResult;
 
@@ -469,44 +474,32 @@ internal abstract partial class CustomComboFunctions
     /// <summary>Lifetime in milliseconds for cached <see cref="IsInLineOfSight"/> results.</summary>
     private const long LineOfSightCacheDurationMs = 500;
 
-    /// <summary>Caches line-of-sight evaluations keyed by safe game object identifier.</summary>
-    private static readonly Dictionary<ulong, (bool Result, long Timestamp)> LineOfSightCache = new();
+    /// <summary>Caches line-of-sight evaluations keyed by game object identifier. Lock-free via ConcurrentDictionary.</summary>
+    private static readonly ConcurrentDictionary<ulong, (bool Result, long Timestamp)> LineOfSightCache = new();
 
     /// Attempts to retrieve a cached line-of-sight result for the provided key.
-    private static bool TryGetLineOfSightFromCache(ulong? cacheKey, out bool result)
+    private static bool TryGetLineOfSightFromCache(ulong cacheKey, out bool result)
     {
         result = false;
-        if (cacheKey is null)
+
+        if (!LineOfSightCache.TryGetValue(cacheKey, out var entry))
             return false;
 
-        lock (LineOfSightCache)
+        if (Environment.TickCount64 - entry.Timestamp <= LineOfSightCacheDurationMs)
         {
-            if (!LineOfSightCache.TryGetValue(cacheKey.Value, out var entry))
-                return false;
-
-            if (Environment.TickCount64 - entry.Timestamp <= LineOfSightCacheDurationMs)
-            {
-                result = entry.Result;
-                return true;
-            }
-
-            LineOfSightCache.Remove(cacheKey.Value);
+            result = entry.Result;
+            return true;
         }
 
+        LineOfSightCache.TryRemove(cacheKey, out _);
         return false;
     }
 
     /// Stores the latest line-of-sight result and trims stale cache entries.
-    private static void UpdateLineOfSightCache(ulong? cacheKey, bool result)
+    private static void UpdateLineOfSightCache(ulong cacheKey, bool result)
     {
-        if (cacheKey is null)
-            return;
         var now = Environment.TickCount64;
-
-        lock (LineOfSightCache)
-        {
-            LineOfSightCache[cacheKey.Value] = (result, now);
-        }
+        LineOfSightCache[cacheKey] = (result, now);
 
         if (EzThrottler.Throttle("LoSCacheCleanup", 250))
             CleanupExpiredLineOfSightCache(now);
@@ -517,13 +510,10 @@ internal abstract partial class CustomComboFunctions
     {
         now ??= Environment.TickCount64;
 
-        lock (LineOfSightCache)
+        foreach (var kvp in LineOfSightCache)
         {
-            foreach (var expiredKey in LineOfSightCache
-                         .Where(kvp => now - kvp.Value.Timestamp >
-                                       LineOfSightCacheDurationMs)
-                         .Select(kvp => kvp.Key).ToList())
-                LineOfSightCache.Remove(expiredKey);
+            if (now - kvp.Value.Timestamp > LineOfSightCacheDurationMs)
+                LineOfSightCache.TryRemove(kvp.Key, out _);
         }
     }
 
@@ -593,10 +583,10 @@ internal abstract partial class CustomComboFunctions
     {
         if (obj is null) return false;
 
-        var        targetPos = obj.Position;
-        var        down      = new Vector3(0, -1, 0);
+        var targetPos = obj.Position;
+        var down = new Vector3(0, -1, 0);
         RaycastHit hit;
-        var        flags = stackalloc int[] { 0x4000, 0, 0x4000, 0 };
+        var flags = stackalloc int[] { 0x4000, 0, 0x4000, 0 };
 
         return Framework.Instance()->BGCollisionModule->RaycastMaterialFilter(&hit, &targetPos, &down, 5, 1, flags);
     }
@@ -608,9 +598,9 @@ internal abstract partial class CustomComboFunctions
     private static unsafe bool IsOverGround
         (Vector3 pointToCheck, out Vector3 groundPoint)
     {
-        var        down = new Vector3(0, -1, 0);
+        var down = new Vector3(0, -1, 0);
         RaycastHit hit;
-        var        flags = stackalloc int[] { 0x4000, 0, 0x4000, 0 };
+        var flags = stackalloc int[] { 0x4000, 0, 0x4000, 0 };
 
         var result = Framework.Instance()->BGCollisionModule->RaycastMaterialFilter(&hit, &pointToCheck, &down, 5, 1, flags);
         groundPoint = hit.Point;
@@ -711,7 +701,7 @@ internal abstract partial class CustomComboFunctions
     ///     (Optional, defaults to 0, which is the value for many Line AoEs)
     /// </param>
     /// <param name="checkIgnoredList">
-    ///     Whether to check the 
+    ///     Whether to check the
     ///     <see cref="Configuration.IgnoredNPCs"/> list. <br />
     ///     (Optional, defaults to false)
     /// </param>
@@ -737,7 +727,8 @@ internal abstract partial class CustomComboFunctions
         float width = 0f,
         bool checkIgnoredList = false,
         bool enemies = true,
-        bool checkInvincible = true)
+        bool checkInvincible = true,
+        IReadOnlyList<IGameObject>? preFilteredTargets = null)
         where T : IAoeShape
     {
         // Bail if the player is not available
@@ -748,8 +739,11 @@ internal abstract partial class CustomComboFunctions
         if (typeof(T) != typeof(SelfCircle) && (target ??= CurrentTarget) is null)
             return 0;
 
-        // Get all possible enemies to search for the positions of
-        var targets = Svc.Objects.Where(IsValidTarget);
+        // Use pre-filtered list if provided (already passed LoS/hostile/invincible checks),
+        // otherwise fall back to scanning Svc.Objects with full validation.
+        IEnumerable<IGameObject> targets = preFilteredTargets != null && enemies
+            ? preFilteredTargets
+            : Svc.Objects.Where(IsValidTarget);
 
         // Circle AoEs positioned on self
         if (typeof(T) == typeof(SelfCircle))

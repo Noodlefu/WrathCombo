@@ -132,11 +132,11 @@ internal abstract partial class CustomComboFunctions
         {
             unsafe
             {
-                if (LocalPlayer is not { } || !IsInLineOfSight(optionalTarget))
+                if (LocalPlayer is not { })
                     return false;
 
-                // LocalPlayer is always the source, our target, regardless of hostile/friendly, can be the object to check distance against
-                // We should also remember this is just a range check, not a target compatibility check (use (IGameObject).CanUseOn for this) 
+                // GetActionInRangeOrLoS checks both range AND line of sight natively,
+                // so no separate IsInLineOfSight call is needed here.
                 var status = ActionManager.GetActionInRangeOrLoS(actionId, LocalPlayer.GameObject(), optionalTarget.Struct());
                 return status is 0 or 565; //0 = no message, 565 = Target is not in range (however this only generates if you're not facing them so it's technically fine with the auto-face setting)
             }
