@@ -132,14 +132,15 @@ internal class Presets : ConfigWindow
     }
 
     private static Dictionary<Preset, bool>? _cachedJobAutorots;
-    private static long _jobAutorotsFrame;
+    private static long _jobAutorotsTimestamp;
+    private const long JobAutorotsCacheDurationMs = 200;
 
     internal static Dictionary<Preset, bool> GetJobAutorots
     {
         get
         {
-            var currentFrame = Environment.TickCount64;
-            if (_cachedJobAutorots is not null && _jobAutorotsFrame == currentFrame)
+            var now = Environment.TickCount64;
+            if (_cachedJobAutorots is not null && now - _jobAutorotsTimestamp < JobAutorotsCacheDurationMs)
                 return _cachedJobAutorots;
 
             var inPvP = CustomComboFunctions.InPvP();
@@ -156,7 +157,7 @@ internal class Presets : ConfigWindow
                            attrs.Parent == null;
                 })
                 .ToDictionary();
-            _jobAutorotsFrame = currentFrame;
+            _jobAutorotsTimestamp = now;
             return _cachedJobAutorots;
         }
     }

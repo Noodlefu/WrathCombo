@@ -100,7 +100,15 @@ internal unsafe class AutoRotationController
         }
     }
 
-    static bool CombatBypass => DPSTargeting.BaseSelection.Any(x => (cfg.BypassQuest && IsQuestMob(x)) || (cfg.BypassFATE && x.Struct()->FateId != 0 && InFATE()));
+    static bool CombatBypass
+    {
+        get
+        {
+            // Short-circuit when neither bypass option is enabled — avoids loading BaseSelection at all.
+            if (!cfg.BypassQuest && !cfg.BypassFATE) return false;
+            return DPSTargeting.BaseSelection.Any(x => (cfg.BypassQuest && IsQuestMob(x)) || (cfg.BypassFATE && x.Struct()->FateId != 0 && InFATE()));
+        }
+    }
     static bool NotInCombat => !GetPartyMembers().Any(x => x.BattleChara is not null && x.BattleChara.Struct()->InCombat && !x.IsOutOfPartyNPC) || PartyEngageDuration().TotalSeconds < cfg.CombatDelay;
 
     private static bool ShouldSkipAutorotation()
@@ -124,11 +132,9 @@ internal unsafe class AutoRotationController
         if (ShouldSkipAutorotation())
             return;
 
-        // Invalidate per-frame caches at the start of each tick
-        DPSTargeting.InvalidateCache();
-
         uint _ = 0;
         var autoActions = Presets.GetJobAutorots;
+        var notInCombat = NotInCombat;
 
         // Pre-emptive HoT/Shield for healers
         if (cfg.HealerSettings.PreEmptiveHoT && Player.Job is Job.CNJ or Job.WHM or Job.AST)
@@ -138,40 +144,48 @@ internal unsafe class AutoRotationController
             PreEmptiveShield();
 
         // Bypass buffs logic
-        if (cfg.BypassBuffs && NotInCombat)
+        if (cfg.BypassBuffs && notInCombat)
         {
             if (ProcessAutoActions(autoActions, ref _, false, true))
                 return;
         }
 
         // Only run in combat if required
-        if (cfg.InCombatOnly && NotInCombat && !CombatBypass)
+        if (cfg.InCombatOnly && notInCombat && !CombatBypass)
             return;
 
         // Healer logic
         bool isHealer = Player.Object?.Role is CombatRole.Healer;
         var healTarget = isHealer ? AutoRotationHelper.GetSingleTarget(cfg.HealerRotationMode) : null;
 
-        bool aoeheal = isHealer
-                       && HealerTargeting.CanAoEHeal()
-                       && autoActions.Any(x => { var a = x.Key.Attributes()?.AutoAction; return a?.IsHeal == true && a?.IsAoE == true; });
+        // Single pass over autoActions to compute all healer flags — avoids 3× redundant
+        // .Attributes() calls that the original three separate .Any() chains would make.
+        bool hasHealAoE = false, hasHealST = false, actCheck = false;
+        if (isHealer)
+        {
+            foreach (var kvp in autoActions)
+            {
+                var attr = kvp.Key.Attributes();
+                var auto = attr?.AutoAction;
+                if (auto?.IsHeal != true) continue;
+                if (auto.IsAoE) hasHealAoE = true;
+                else hasHealST = true;
+                if (!actCheck)
+                {
+                    var baseAct = attr!.ReplaceSkill?.ActionIDs.FirstOrDefault() ?? 0;
+                    actCheck = baseAct != 0 && LevelChecked(baseAct) && ActionReady(OriginalHook(baseAct));
+                }
+                if (hasHealAoE && hasHealST && actCheck) break;
+            }
+        }
 
-        bool needsHeal = ((healTarget != null
-                           && autoActions.Any(x => { var a = x.Key.Attributes()?.AutoAction; return a?.IsHeal == true && a?.IsAoE != true; }))
-                          || aoeheal)
-                         && isHealer;
+        bool aoeheal = isHealer && hasHealAoE && HealerTargeting.CanAoEHeal();
+        bool needsHeal = ((healTarget != null && hasHealST) || aoeheal) && isHealer;
 
         if (needsHeal && TimeToHeal is null)
             TimeToHeal = DateTime.Now;
         else if (!needsHeal)
             TimeToHeal = null;
-
-        // Check if any healing action is ready
-        bool actCheck = autoActions.Any(x =>
-        {
-            var attr = x.Key.Attributes();
-            return attr?.AutoAction?.IsHeal == true && ActionReady(AutoRotationHelper.InvokeCombo(x.Key, attr, ref _));
-        });
 
         bool canHeal = TimeToHeal is not null
                        && (DateTime.Now - TimeToHeal.Value).TotalSeconds >= cfg.HealerSettings.HealDelay
@@ -213,9 +227,10 @@ internal unsafe class AutoRotationController
 
     private static bool ProcessAutoActions(Dictionary<Preset, bool> autoActions, ref uint _, bool canHeal, bool stOnly)
     {
-        // Pre-filter and cache attributes to avoid repeated lookups
+        // Pre-filter and cache attributes to avoid repeated lookups.
+        // ValueTuples instead of anonymous types to avoid per-entry heap allocation.
         var filteredActions = autoActions
-            .Select(x => new { Preset = x.Key, Attributes = x.Key.Attributes() })
+            .Select(x => (Preset: x.Key, Attributes: x.Key.Attributes()))
             .Where(x => x.Attributes is { AutoAction: not null, ReplaceSkill: not null })
             .Where(x => x.Attributes.AutoAction.IsHeal == canHeal)
             .Where(x => !stOnly || x.Attributes.AutoAction.IsAoE == false)
@@ -282,11 +297,14 @@ internal unsafe class AutoRotationController
 
         if (regenSpell != 0 && !JustUsed(regenSpell, 4) && SimpleTarget.FocusTarget != null && (!HasStatusEffect(regenBuff, out var regen, SimpleTarget.FocusTarget) || regen?.RemainingTime <= 5f))
         {
-            var query = Svc.Objects.Where(x => !x.IsDead && x.IsTargetable && x.IsHostile());
-            if (!query.Any())
+            // Single pass: find the nearest hostile, bail if none exist.
+            var nearestHostile = Svc.Objects
+                .Where(x => !x.IsDead && x.IsTargetable && x.IsHostile())
+                .MinBy(x => GetTargetDistance(x, SimpleTarget.FocusTarget));
+            if (nearestHostile == null)
                 return;
 
-            if (query.Min(x => GetTargetDistance(x, SimpleTarget.FocusTarget)) <= QueryRange)
+            if (GetTargetDistance(nearestHostile, SimpleTarget.FocusTarget) <= QueryRange)
             {
                 var spell = ActionManager.Instance()->GetAdjustedActionId(regenSpell).Retarget(SimpleTarget.FocusTarget);
 
@@ -346,11 +364,14 @@ internal unsafe class AutoRotationController
                 }
             }
 
-            var query = Svc.Objects.Where(x => !x.IsDead && x.IsTargetable && x.IsHostile());
-            if (!query.Any())
+            // Single pass: find the nearest hostile, bail if none exist.
+            var nearestHostile = Svc.Objects
+                .Where(x => !x.IsDead && x.IsTargetable && x.IsHostile())
+                .MinBy(x => GetTargetDistance(x, SimpleTarget.FocusTarget));
+            if (nearestHostile == null)
                 return;
 
-            if (query.Min(x => GetTargetDistance(x, SimpleTarget.FocusTarget)) <= QueryRange)
+            if (GetTargetDistance(nearestHostile, SimpleTarget.FocusTarget) <= QueryRange)
             {
                 var spell = ActionManager.Instance()->GetAdjustedActionId(shieldSpell).Retarget(SimpleTarget.FocusTarget);
 
@@ -512,8 +533,8 @@ internal unsafe class AutoRotationController
             if (cfg.HealerSettings.KardiaTanksOnly && member.BattleChara?.GetRole() is not CombatRole.Tank &&
                 !HasStatusEffect(3615, member.BattleChara, true)) continue;
 
-            var enemiesTargeting = Svc.Objects.Count(x => x.IsTargetable && x.IsHostile() && x.TargetObjectId == member.BattleChara.GameObjectId);
-            if (enemiesTargeting > 0 && !HasStatusEffect(SGE.Buffs.Kardion, member.BattleChara))
+            if (Svc.Objects.Any(x => x.IsTargetable && x.IsHostile() && x.TargetObjectId == member.BattleChara.GameObjectId) &&
+                !HasStatusEffect(SGE.Buffs.Kardion, member.BattleChara))
             {
                 ActionManager.Instance()->UseAction(ActionType.Action, SGE.Kardia, member.BattleChara.GameObjectId);
                 return;
@@ -751,6 +772,11 @@ internal unsafe class AutoRotationController
             if (LocalPlayer is not { } player)
                 return false;
 
+            // CanQueue always fails when animation lock is above the threshold —
+            // skip InvokeCombo (full combo tree) in that case.
+            if (ActionManager.Instance()->AnimationLock > BaseActionQueue)
+                return false;
+
             var target = GetSingleTarget(mode);
             OverrideTarget = target;
             var outAct = OriginalHook(InvokeCombo(preset, attributes, ref gameAct, target));
@@ -866,10 +892,8 @@ internal unsafe class AutoRotationController
     public class DPSTargeting
     {
         private static IGameObject[]? _cachedBaseSelection;
-        private static long _baseSelectionFrame;
-
-        /// <summary> Invalidates the cached BaseSelection. Call at the start of each auto-rotation tick. </summary>
-        internal static void InvalidateCache() => _baseSelectionFrame = 0;
+        private static long _baseSelectionTimestamp;
+        private const long BaseSelectionCacheDurationMs = 50;
 
         private static bool Query(IGameObject x) =>
             x is IBattleChara chara &&
@@ -887,15 +911,15 @@ internal unsafe class AutoRotationController
         {
             get
             {
-                var currentFrame = Environment.TickCount64;
-                if (_cachedBaseSelection is not null && _baseSelectionFrame == currentFrame)
+                var now = Environment.TickCount64;
+                if (_cachedBaseSelection is not null && now - _baseSelectionTimestamp < BaseSelectionCacheDurationMs)
                     return _cachedBaseSelection;
 
                 var priorityTargets = Svc.Objects.Where(x => Query(x) && IsPriority(x)).ToArray();
                 _cachedBaseSelection = priorityTargets.Length > 0
                     ? priorityTargets
                     : Svc.Objects.Where(x => Query(x)).ToArray();
-                _baseSelectionFrame = currentFrame;
+                _baseSelectionTimestamp = now;
                 return _cachedBaseSelection;
             }
         }
@@ -932,56 +956,27 @@ internal unsafe class AutoRotationController
             return tank.BattleChara.TargetObject;
         }
 
-        public static IGameObject? GetNearestTarget()
-        {
-            return BaseSelection
-                .OrderByDescending(x => IsCombatPriority(x))
-                .ThenBy(x => GetTargetDistance(x))
-                .FirstOrDefault();
-        }
+        // MinBy/MaxBy with composite tuple keys — O(n) single-pass instead of O(n log n) sort.
+        // Tuple comparison is element-wise: priority key first, then the stat.
+        // For DESC sorts: negate numerics or map bool to (priority ? 1 : 0) for MaxBy.
 
-        public static IGameObject? GetFurthestTarget()
-        {
-            return BaseSelection
-                .OrderByDescending(x => IsCombatPriority(x))
-                .ThenByDescending(x => GetTargetDistance(x))
-                .FirstOrDefault();
-        }
+        public static IGameObject? GetNearestTarget() =>
+            BaseSelection.MinBy(x => (IsCombatPriority(x) ? 0 : 1, GetTargetDistance(x)));
 
-        public static IGameObject? GetLowestCurrentTarget()
-        {
-            return BaseSelection
-                .OrderByDescending(x => IsCombatPriority(x))
-                .ThenBy(x => GetTargetCurrentHP(x))
-                .FirstOrDefault();
-        }
+        public static IGameObject? GetFurthestTarget() =>
+            BaseSelection.MaxBy(x => (IsCombatPriority(x) ? 1 : 0, GetTargetDistance(x)));
 
-        public static IGameObject? GetHighestCurrentTarget()
-        {
-            return BaseSelection
-                .OrderByDescending(x => IsCombatPriority(x))
-                .ThenByDescending(x => GetTargetCurrentHP(x))
-                .FirstOrDefault();
-        }
+        public static IGameObject? GetLowestCurrentTarget() =>
+            BaseSelection.MinBy(x => (IsCombatPriority(x) ? 0 : 1, GetTargetCurrentHP(x)));
 
-        public static IGameObject? GetLowestMaxTarget()
-        {
+        public static IGameObject? GetHighestCurrentTarget() =>
+            BaseSelection.MaxBy(x => (IsCombatPriority(x) ? 1 : 0, GetTargetCurrentHP(x)));
 
-            return BaseSelection
-                .OrderByDescending(x => IsCombatPriority(x))
-                .ThenBy(x => GetTargetMaxHP(x))
-                .ThenBy(x => GetTargetHPPercent(x))
-                .FirstOrDefault();
-        }
+        public static IGameObject? GetLowestMaxTarget() =>
+            BaseSelection.MinBy(x => (IsCombatPriority(x) ? 0 : 1, GetTargetMaxHP(x), GetTargetHPPercent(x)));
 
-        public static IGameObject? GetHighestMaxTarget()
-        {
-            return BaseSelection
-                .OrderByDescending(x => IsCombatPriority(x))
-                .ThenByDescending(x => GetTargetMaxHP(x))
-                .ThenBy(x => GetTargetHPPercent(x))
-                .FirstOrDefault();
-        }
+        public static IGameObject? GetHighestMaxTarget() =>
+            BaseSelection.MinBy(x => (IsCombatPriority(x) ? 0 : 1, -(long)GetTargetMaxHP(x), GetTargetHPPercent(x)));
     }
 
     public static class HealerTargeting
@@ -1004,8 +999,9 @@ internal unsafe class AutoRotationController
         }
         internal static IGameObject? GetHighestCurrent()
         {
-            if (GetPartyMembers().Count == 0) return Player.Object;
-            var target = GetPartyMembers()
+            var members = GetPartyMembers();
+            if (members.Count == 0) return Player.Object;
+            var target = members
                 .Where(x => !x.BattleChara.IsDead &&
                             x.BattleChara.IsTargetable &&
                             GetTargetDistance(x.BattleChara) <= QueryRange &&
@@ -1023,8 +1019,9 @@ internal unsafe class AutoRotationController
 
         internal static IGameObject? GetLowestCurrent()
         {
-            if (GetPartyMembers().Count == 0) return Player.Object;
-            var target = GetPartyMembers()
+            var members = GetPartyMembers();
+            if (members.Count == 0) return Player.Object;
+            var target = members
                 .Where(x => !x.BattleChara.IsDead &&
                             x.BattleChara.IsTargetable &&
                             GetTargetDistance(x.BattleChara) <= QueryRange &&
@@ -1054,7 +1051,7 @@ internal unsafe class AutoRotationController
                                     ? GetTargetDistance(x.BattleChara) <= 20f
                                     : InActionRange(outAct, x.BattleChara)) &&
                                 GetTargetHPPercent(x.BattleChara) <= cfg.HealerSettings.AoETargetHPP);
-                memberCount = members.Count();
+                memberCount = members.Take(cfg.HealerSettings.AoEHealTargetCount ?? int.MaxValue).Count();
             }
             catch { memberCount = 0; }
 
@@ -1099,42 +1096,32 @@ internal unsafe class AutoRotationController
 
     public static class TankTargeting
     {
-        public static IGameObject? GetLowestCurrentTarget()
-        {
-            return DPSTargeting.BaseSelection
-                .OrderByDescending(x => DPSTargeting.IsCombatPriority(x))
-                .ThenByDescending(x => x.TargetObject?.GameObjectId != Player.Object?.GameObjectId)
-                .ThenBy(x => GetTargetCurrentHP(x))
-                .ThenBy(x => GetTargetHPPercent(x)).FirstOrDefault();
-        }
+        public static IGameObject? GetLowestCurrentTarget() =>
+            DPSTargeting.BaseSelection.MinBy(x => (
+                DPSTargeting.IsCombatPriority(x) ? 0 : 1,
+                x.TargetObject?.GameObjectId != Player.Object?.GameObjectId ? 0 : 1,
+                GetTargetCurrentHP(x),
+                GetTargetHPPercent(x)));
 
-        public static IGameObject? GetHighestCurrentTarget()
-        {
-            return DPSTargeting.BaseSelection
-                .OrderByDescending(x => DPSTargeting.IsCombatPriority(x))
-                .ThenByDescending(x => x.TargetObject?.GameObjectId != Player.Object?.GameObjectId)
-                .ThenByDescending(x => GetTargetCurrentHP(x))
-                .ThenBy(x => GetTargetHPPercent(x)).FirstOrDefault();
-        }
+        public static IGameObject? GetHighestCurrentTarget() =>
+            DPSTargeting.BaseSelection.MaxBy(x => (
+                DPSTargeting.IsCombatPriority(x) ? 1 : 0,
+                x.TargetObject?.GameObjectId != Player.Object?.GameObjectId ? 1 : 0,
+                GetTargetCurrentHP(x),
+                -GetTargetHPPercent(x)));
 
-        public static IGameObject? GetLowestMaxTarget()
-        {
-            var t = DPSTargeting.BaseSelection
-                .OrderByDescending(x => DPSTargeting.IsCombatPriority(x))
-                .ThenByDescending(x => x.TargetObject?.GameObjectId != Player.Object?.GameObjectId)
-                .ThenBy(x => GetTargetMaxHP(x))
-                .ThenBy(x => GetTargetHPPercent(x)).FirstOrDefault();
+        public static IGameObject? GetLowestMaxTarget() =>
+            DPSTargeting.BaseSelection.MinBy(x => (
+                DPSTargeting.IsCombatPriority(x) ? 0 : 1,
+                x.TargetObject?.GameObjectId != Player.Object?.GameObjectId ? 0 : 1,
+                GetTargetMaxHP(x),
+                GetTargetHPPercent(x)));
 
-            return t;
-        }
-
-        public static IGameObject? GetHighestMaxTarget()
-        {
-            return DPSTargeting.BaseSelection
-                .OrderByDescending(x => DPSTargeting.IsCombatPriority(x))
-                .ThenByDescending(x => x.TargetObject?.GameObjectId != Player.Object?.GameObjectId)
-                .ThenByDescending(x => GetTargetMaxHP(x))
-                .ThenBy(x => GetTargetHPPercent(x)).FirstOrDefault();
-        }
+        public static IGameObject? GetHighestMaxTarget() =>
+            DPSTargeting.BaseSelection.MinBy(x => (
+                DPSTargeting.IsCombatPriority(x) ? 0 : 1,
+                x.TargetObject?.GameObjectId != Player.Object?.GameObjectId ? 0 : 1,
+                -(long)GetTargetMaxHP(x),
+                GetTargetHPPercent(x)));
     }
 }

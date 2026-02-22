@@ -38,8 +38,9 @@ public partial class Configuration
 
     /// <summary>
     ///     Whether an item is currently being saved.
+    ///     Volatile so reads on the game thread see writes from the background save task.
     /// </summary>
-    private static bool _isSaving;
+    private static volatile bool _isSaving;
 
     /// <summary>
     ///     Process the <see cref="SaveQueue"/>, trying to save each item.
@@ -52,15 +53,20 @@ public partial class Configuration
         _isSaving = true;
         var (config, trace) = SaveQueue.Dequeue();
 
-        try
+        // Run the file write off the game thread so it never causes a frame spike.
+        // _isSaving stays true until the task completes, preventing queue pile-up.
+        Task.Run(() =>
         {
-            Svc.PluginInterface.SavePluginConfig(config);
-            _isSaving = false;
-        }
-        catch (Exception)
-        {
-            Svc.Framework.Run(() => RetrySave(config, trace));
-        }
+            try
+            {
+                Svc.PluginInterface.SavePluginConfig(config);
+                _isSaving = false;
+            }
+            catch (Exception)
+            {
+                Svc.Framework.Run(() => RetrySave(config, trace));
+            }
+        });
     }
 
     internal static void RetrySave

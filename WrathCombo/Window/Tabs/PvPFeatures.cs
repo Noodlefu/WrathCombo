@@ -135,7 +135,8 @@ internal class PvPFeatures : FeaturesWindow
             }
             else
             {
-                var id = groupedPresets[OpenPvPJob.Value].First().Info.Job;
+                var openPvPJob = OpenPvPJob.Value;
+                var id = groupedPresets[openPvPJob].First().Info.Job;
 
                 DrawHeader(id, true);
                 DrawSearchBar();
@@ -149,11 +150,11 @@ internal class PvPFeatures : FeaturesWindow
 
                 try
                 {
-                    if (ImGui.BeginTabBar($"subTab{OpenPvPJob.Value.Name()}", ImGuiTabBarFlags.Reorderable | ImGuiTabBarFlags.AutoSelectNewTabs))
+                    if (ImGui.BeginTabBar($"subTab{openPvPJob.Name()}", ImGuiTabBarFlags.Reorderable | ImGuiTabBarFlags.AutoSelectNewTabs))
                     {
                         if (ImGui.BeginTabItem("Normal"))
                         {
-                            DrawHeadingContents(OpenPvPJob.Value);
+                            DrawHeadingContents(openPvPJob);
                             ImGui.EndTabItem();
                         }
 

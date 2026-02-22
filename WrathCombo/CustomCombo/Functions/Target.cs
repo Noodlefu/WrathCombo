@@ -196,7 +196,7 @@ internal abstract partial class CustomComboFunctions
         }
 
         // Bail if blacklisted
-        if (Service.Configuration.StatusBlacklist.Any(x => x.Status == All.Debuffs.Stun && x.BaseId == chara.BaseId))
+        if (Service.Configuration.StatusBlacklist.Contains((All.Debuffs.Stun, chara.BaseId)))
             return false;
 
         // Bail if it fails the Internal Cooldown tracker for Stuns

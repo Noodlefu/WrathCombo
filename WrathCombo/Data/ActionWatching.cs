@@ -221,11 +221,11 @@ public static class ActionWatching
                         if (ICDTracker.Trackers.TryGetFirst(x => x.StatusID == effValue && x.GameObjectId == effObjectId, out var icd))
                         {
                             //This section here is just to clear out any erroneous times a status was added to the blacklist when it shouldn't have due to potential timings
-                            if (dataId is uint val && Service.Configuration.StatusBlacklist.Any(x => x.Status == effValue && x.BaseId == dataId))
+                            if (dataId is uint val)
                             {
-                                var p = Service.Configuration.StatusBlacklist.First(x => x.Status == effValue && x.BaseId == dataId);
-                                Service.Configuration.StatusBlacklist.Remove(p);
-                                Service.Configuration.Save();
+                                // HashSet.Contains + Remove is O(1) vs the previous Any() + First() which were O(n) each.
+                                if (Service.Configuration.StatusBlacklist.Remove((effValue, val)))
+                                    Service.Configuration.Save();
                             }
                             icd.ICDClearedTime = dateNow + TimeSpan.FromSeconds(60);
                             icd.TimesApplied += 1;

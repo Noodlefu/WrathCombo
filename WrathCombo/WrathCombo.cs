@@ -62,6 +62,11 @@ public sealed partial class WrathCombo : IDalamudPlugin
     internal MovementHook MoveHook;
 
     private readonly TextPayload starterMotd = new("[Wrath Message of the Day] ");
+    // DTR bar cached state — only rebuild SeString when these change
+    private bool? _dtrAutoOn;
+    private int _dtrActivePresets = -1;
+    private bool _dtrIpcControlled;
+
     private static Job? jobID;
     private static bool EnteringInstancedContent
     {
@@ -342,20 +347,28 @@ public sealed partial class WrathCombo : IDalamudPlugin
                 #region DTR Bar Updating
 
                 var autoOn = IPC.GetAutoRotationState();
-                var icon = new IconPayload(autoOn
-                    ? BitmapFontIcon.SwordUnsheathed
-                    : BitmapFontIcon.SwordSheathed);
+                var activePresets = !Service.Configuration.ShortDTRText && autoOn
+                    ? P.IPCSearch.ActiveJobPresets
+                    : -1;
+                var ipcControlled = P.UIHelper.AutoRotationStateControlled() is not null;
 
-                var text = autoOn ? ": On" : ": Off";
-                if (!Service.Configuration.ShortDTRText && autoOn)
-                    text += $" ({P.IPCSearch.ActiveJobPresets} active)";
-                var ipcControlledText =
-                    P.UIHelper.AutoRotationStateControlled() is not null
-                        ? " (Locked)"
-                        : "";
+                // Only allocate new payload objects when the displayed content actually changes.
+                if (autoOn != _dtrAutoOn || activePresets != _dtrActivePresets || ipcControlled != _dtrIpcControlled)
+                {
+                    _dtrAutoOn = autoOn;
+                    _dtrActivePresets = activePresets;
+                    _dtrIpcControlled = ipcControlled;
 
-                var payloadText = new TextPayload(text + ipcControlledText);
-                DtrBarEntry.Text = new SeString(icon, payloadText);
+                    var icon = new IconPayload(autoOn
+                        ? BitmapFontIcon.SwordUnsheathed
+                        : BitmapFontIcon.SwordSheathed);
+                    var text = autoOn ? ": On" : ": Off";
+                    if (activePresets >= 0)
+                        text += $" ({activePresets} active)";
+                    var ipcControlledText = ipcControlled ? " (Locked)" : "";
+
+                    DtrBarEntry.Text = new SeString(icon, new TextPayload(text + ipcControlledText));
+                }
 
                 #endregion
             }
