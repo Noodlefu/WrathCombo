@@ -12,7 +12,10 @@ internal partial class PCT
         #region Options
         public static UserInt
             CombinedAetherhueChoices = new("CombinedAetherhueChoices", 0),
+            PCT_ST_AdvancedMode_BurnBoss = new("PCT_ST_AdvancedMode_BurnBoss"),
+            PCT_AoE_AdvancedMode_BurnBoss = new("PCT_AoE_AdvancedMode_BurnBoss"),
             PCT_ST_AdvancedMode_LucidOption = new("PCT_ST_AdvancedMode_LucidOption", 6500),
+            PCT_ST_AdvancedMode_HolyinWhiteOption = new("PCT_ST_AdvancedMode_HolyinWhiteOption", 2),
             PCT_AoE_AdvancedMode_HolyinWhiteOption = new("PCT_AoE_AdvancedMode_HolyinWhiteOption", 2),
             PCT_AoE_AdvancedMode_LucidOption = new("PCT_AoE_AdvancedMode_LucidOption", 6500),
             PCT_AoE_AdvancedMode_ScenicMuse_Threshold = new("PCT_AoE_AdvancedMode_ScenicMuse_Threshold", 20),
@@ -35,6 +38,11 @@ internal partial class PCT
             CombinedMotifsMadeen = new("CombinedMotifsMadeen"),
             CombinedMotifsWeapon = new("CombinedMotifsWeapon"),
             CombinedMotifsLandscape = new("CombinedMotifsLandscape");
+        
+        public static UserFloat
+            PCT_ST_AdvancedMode_HammerStampCombo_Timing = new("PCT_ST_AdvancedMode_HammerStampCombo_Timing", 30),
+            PCT_AoE_AdvancedMode_HammerStampCombo_Timing = new("PCT_AoE_AdvancedMode_HammerStampCombo_Timing", 30);
+        
         #endregion
     
         internal static void Draw(Preset preset)
@@ -42,15 +50,17 @@ internal partial class PCT
             switch (preset)
             {
                 #region Single Target
+                case Preset.PCT_ST_AdvancedMode:
+                    DrawSliderInt(0, 10, PCT_ST_AdvancedMode_BurnBoss, "Stop pooling charges and burn bosses below this HP % (0% = Don't Burn).");
+                    break;
+                
                 case Preset.PCT_ST_Advanced_Openers:
-                    ImGui.Indent();
-                    DrawHorizontalRadioButton(PCT_Opener_Choice, $"2nd GCD {StarryMuse.ActionName()}", "",
-                        0);
-                    DrawHorizontalRadioButton(PCT_Opener_Choice, $"3rd GCD {StarryMuse.ActionName()}", "",
-                        1);
-                    ImGui.NewLine();
                     DrawBossOnlyChoice(PCT_Balance_Content);
-                    ImGui.Unindent();
+                    ImGui.NewLine();
+                    DrawRadioButton(PCT_Opener_Choice, $"2nd GCD {StarryMuse.ActionName()}", 
+                        "Opener Failure Timeout (in Settings Tab) Must be set to 5+ seconds for opener to function due to long initial spell cast.", 0, descriptionAsTooltip: true);
+                    DrawRadioButton(PCT_Opener_Choice, $"3rd GCD {StarryMuse.ActionName()}", 
+                        "Opener Failure Timeout (in Settings Tab) Must be set to 5+ seconds for opener to function due to long initial spell cast.", 1, descriptionAsTooltip: true);
                     break;
 
                 case Preset.PCT_ST_AdvancedMode_LucidDreaming:
@@ -85,6 +95,10 @@ internal partial class PCT
                         "All Content", $"Applies HP Check to All Content", 1);
                     ImGui.Unindent();
                     break;
+                
+                case Preset.PCT_ST_AdvancedMode_HammerStampCombo:
+                    DrawSliderFloat(15, 30, PCT_ST_AdvancedMode_HammerStampCombo_Timing, "Time Remaining on Hammer Time (seconds) to use combo. 30 = Use Immediately.", decimals: 0);
+                    break;
 
                 case Preset.PCT_ST_AdvancedMode_LandscapeMotif:
                     DrawSliderInt(0, 10, PCT_ST_LandscapeStop, "Health % to stop Drawing Motif");
@@ -97,10 +111,20 @@ internal partial class PCT
                 case Preset.PCT_ST_AdvancedMode_WeaponMotif:
                     DrawSliderInt(0, 10, PCT_ST_WeaponStop, "Health % to stop Drawing Motif");
                     break;
+                
+                case Preset.PCT_ST_AdvancedMode_HolyinWhite:
+                    DrawSliderInt(0, 5, PCT_ST_AdvancedMode_HolyinWhiteOption,
+                        "How many charges to keep ready? (0 = Use all)");
+                    break;
 
                 #endregion
 
                 #region AoE
+                
+                case Preset.PCT_AoE_AdvancedMode:
+                    DrawSliderInt(0, 10, PCT_AoE_AdvancedMode_BurnBoss, "Stop pooling charges and burn bosses below this HP % (0% = Don't Burn).");
+                    break;
+                
                 case Preset.PCT_AoE_AdvancedMode_HolyinWhite:
                     DrawSliderInt(0, 5, PCT_AoE_AdvancedMode_HolyinWhiteOption,
                         "How many charges to keep ready? (0 = Use all)");
@@ -109,6 +133,10 @@ internal partial class PCT
                 case Preset.PCT_AoE_AdvancedMode_LucidDreaming:
                     DrawSliderInt(0, 10000, PCT_AoE_AdvancedMode_LucidOption,
                         "Add Lucid Dreaming when below this MP", sliderIncrement: SliderIncrements.Hundreds);
+                    break;
+                
+                case Preset.PCT_AoE_AdvancedMode_HammerStampCombo:
+                    DrawSliderFloat(15, 30, PCT_AoE_AdvancedMode_HammerStampCombo_Timing, "Time Remaining on Hammer Time (seconds) to use combo. 30 = Use Immediately.", decimals: 0);
                     break;
 
                 case Preset.PCT_AoE_AdvancedMode_LandscapeMotif:

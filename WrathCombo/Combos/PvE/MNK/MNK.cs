@@ -187,14 +187,15 @@ internal partial class MNK : Melee
             // OGCDs
             if (CanWeave() && InCombat())
             {
-                if (IsEnabled(Preset.MNK_STUseBuffs) &&
-                    GetTargetHPPercent() > HPThresholdBuffs)
+                if (IsEnabled(Preset.MNK_STUseBuffs))
                 {
                     if (IsEnabled(Preset.MNK_STUseBrotherhood) &&
+                        GetTargetHPPercent() > HPThresholdBH &&
                         CanBrotherhood())
                         return Brotherhood;
 
                     if (IsEnabled(Preset.MNK_STUseROF) &&
+                        GetTargetHPPercent() > HPThresholdRoF &&
                         CanRoF())
                         return RiddleOfFire;
                 }
@@ -205,7 +206,7 @@ internal partial class MNK : Melee
 
                 if (IsEnabled(Preset.MNK_STUseBuffs) &&
                     IsEnabled(Preset.MNK_STUseROW) &&
-                    GetTargetHPPercent() > HPThresholdBuffs &&
+                    GetTargetHPPercent() > HPThresholdRoW &&
                     CanRoW())
                     return RiddleOfWind;
 
@@ -372,29 +373,60 @@ internal partial class MNK : Melee
         }
     }
 
+    internal class MNK_ST_BasicCombo : CustomCombo
+    {
+        protected internal override Preset Preset => Preset.MNK_ST_BasicCombo;
+
+        protected override uint Invoke(uint actionID)
+        {
+            if (actionID is not (SnapPunch or PouncingCoeurl))
+                return actionID;
+
+            if (!LevelChecked(TrueStrike))
+                return Bootshine;
+
+            if (HasStatusEffect(Buffs.OpoOpoForm) || HasStatusEffect(Buffs.FormlessFist))
+                return OpoOpoStacks is 0 && LevelChecked(DragonKick)
+                    ? DragonKick
+                    : OriginalHook(Bootshine);
+
+            if (HasStatusEffect(Buffs.RaptorForm))
+                return RaptorStacks is 0 && LevelChecked(TwinSnakes)
+                    ? TwinSnakes
+                    : OriginalHook(TrueStrike);
+
+            if (HasStatusEffect(Buffs.CoeurlForm))
+                return CoeurlStacks is 0 && LevelChecked(Demolish)
+                    ? Demolish
+                    : OriginalHook(SnapPunch);
+
+            return OriginalHook(Bootshine);
+        }
+    }
+
     internal class MNK_BeastChakras : CustomCombo
     {
         protected internal override Preset Preset => Preset.MNK_Basic_BeastChakras;
 
         protected override uint Invoke(uint actionID)
         {
-            if (actionID is not (Bootshine or LeapingOpo or TrueStrike or RisingRaptor or SnapPunch or PouncingCoeurl))
+            if (actionID is not (DragonKick or TwinSnakes or Demolish))
                 return actionID;
 
             if (MNK_BasicCombo[0] &&
-                actionID is Bootshine or LeapingOpo)
+                actionID is DragonKick)
                 return OpoOpoStacks is 0 && LevelChecked(DragonKick)
                     ? DragonKick
                     : OriginalHook(Bootshine);
 
             if (MNK_BasicCombo[1] &&
-                actionID is TrueStrike or RisingRaptor)
+                actionID is TwinSnakes)
                 return RaptorStacks is 0 && LevelChecked(TwinSnakes)
                     ? TwinSnakes
                     : OriginalHook(TrueStrike);
 
             if (MNK_BasicCombo[2] &&
-                actionID is SnapPunch or PouncingCoeurl)
+                actionID is Demolish)
                 return CoeurlStacks is 0 && LevelChecked(Demolish)
                     ? Demolish
                     : OriginalHook(SnapPunch);

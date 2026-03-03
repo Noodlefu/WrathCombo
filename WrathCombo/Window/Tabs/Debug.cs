@@ -78,6 +78,8 @@ internal class Debug : ConfigWindow, IDisposable
     internal new static unsafe void Draw()
     {
         ImGui.Text("This is where you can figure out where it all went wrong.");
+        if (PingPluginIPC.CanGetPing)
+            ImGui.Text($"Current Ping: {PingPluginIPC.LastPing}ms");
 
         ImGuiEx.Spacing(new Vector2(0f, SpacingMedium));
 
@@ -238,10 +240,10 @@ internal class Debug : ConfigWindow, IDisposable
                 // Build First Column
                 string firstColumn = (string.IsNullOrEmpty(statusName), string.IsNullOrEmpty(sourceName)) switch
                 {
-                    (false, false)  => $"{sourceName} → {statusName}:", // Both Exist
-                    (false, true)   => $"{statusName}:",                // Only 'statusName'
-                    (true, false)   => $"{sourceName} → {UnknownName}", // Only 'sourceName'
-                    (true, true)    => UnknownName                      // Neither
+                    (false, false) => $"{sourceName} → {statusName}:", // Both Exist
+                    (false, true) => $"{statusName}:",                // Only 'statusName'
+                    (true, false) => $"{sourceName} → {UnknownName}", // Only 'sourceName'
+                    (true, true) => UnknownName                      // Neither
                 };
 
                 // Build Second Column
@@ -282,10 +284,10 @@ internal class Debug : ConfigWindow, IDisposable
                     // Build First Column
                     string firstColumn = (string.IsNullOrEmpty(statusName), string.IsNullOrEmpty(sourceName)) switch
                     {
-                        (false, false)  => $"{sourceName} → {statusName}:", // Both Exist
-                        (false, true)   => $"{statusName}:",                // Only 'statusName'
-                        (true, false)   => $"{sourceName} → {UnknownName}", // Only 'sourceName'
-                        (true, true)    => UnknownName                      // Neither
+                        (false, false) => $"{sourceName} → {statusName}:", // Both Exist
+                        (false, true) => $"{statusName}:",                // Only 'statusName'
+                        (true, false) => $"{sourceName} → {UnknownName}", // Only 'sourceName'
+                        (true, true) => UnknownName                      // Neither
                     };
 
                     // Build Second Column
@@ -856,7 +858,7 @@ internal class Debug : ConfigWindow, IDisposable
                 foreach (var retarget in distinctRetargets)
                 {
                     var val = retarget.Value;
-                    if (!first) ImGuiEx.Spacing(new Vector2(0f, SpacingSmall/2));
+                    if (!first) ImGuiEx.Spacing(new Vector2(0f, SpacingSmall / 2));
 
                     CustomStyleText($"Action: {val.Action.ActionName()} (Key: {retarget.Key.ActionName()})",
                         $"ID: {val.ID,20}");
@@ -957,14 +959,14 @@ internal class Debug : ConfigWindow, IDisposable
         {
             ImGui.Indent();
 
-            CustomStyleText($"Shared Damage Effect On", CheckForSharedDamageEffect(out float distance, out bool multihit, out var poorsap) ? $"{poorsap?.Name} {distance:F1}y Multi-Hit {multihit}" : "");
+            CustomStyleText($"Shared Damage Effect On", CheckForSharedDamageEffect(out bool multihit, out var poorsap, 45) ? $"{poorsap?.Name} {GetTargetDistance(poorsap):F1}y Multi-Hit {multihit}" : "");
             CustomStyleText($"Tankbuster Detected On", $"{(TryGetTankBusterTarget(out var tankBusterTarget) ? tankBusterTarget?.Name : "")}");
 
             if (ImGui.CollapsingHeader("Friendly Target VFX"))
             {
                 ImGuiEx.TextWrapped($"Mainly to be used with ARR and real party members since they don't actually get added to the party for some reason.");
                 ImGui.Separator();
-                foreach (var obj in Svc.Objects.Where(x => x is IGameObject && x.IsFriendly()))
+                foreach (var obj in Svc.Objects.Where(x => x.IsFriendly()))
                 {
                     ImGui.Text($"{obj.Name} ({obj.GameObjectId})");
                     DrawVFXTree(obj);
@@ -972,7 +974,7 @@ internal class Debug : ConfigWindow, IDisposable
             }
             if (ImGui.CollapsingHeader("Hostile Target VFX"))
             {
-                foreach (var obj in Svc.Objects.Where(x => x is IGameObject && x.IsHostile()))
+                foreach (var obj in Svc.Objects.Where(x => x.IsHostile()))
                 {
                     ImGui.Text($"{obj.Name} ({obj.GameObjectId})");
                     DrawVFXTree(obj);
@@ -1136,7 +1138,7 @@ internal class Debug : ConfigWindow, IDisposable
             }
         }
 
-        if(ImGui.CollapsingHeader("Action Request"))
+        if (ImGui.CollapsingHeader("Action Request"))
         {
             ImGui.Indent();
             ActionRequestDebugUI.Draw();
@@ -1319,7 +1321,7 @@ internal class Debug : ConfigWindow, IDisposable
             {
                 foreach (var vfx in vfxList)
                 {
-                    CustomStyleText($"Path: {vfx.Path}{(IsTankBusterEffectPath(vfx) ? " (Tank Buster)": "")}", $"Age: {vfx.AgeSeconds:N1}s");
+                    CustomStyleText($"Path: {vfx.Path}{(IsTankBusterEffectPath(vfx) ? " (Tank Buster)" : "")}", $"Age: {vfx.AgeSeconds:N1}s");
                     ImGui.SameLine();
                     if (ImGui.Button($"Copy Path###{vfx.Path}{obj.GameObjectId}"))
                     {

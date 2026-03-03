@@ -627,10 +627,10 @@ public enum Preset
     [CustomComboInfo("Occult Resuscitation", "Adds Occult Resuscitation into the rotation.", Job.ADV)]
     Phantom_Freelancer_OccultResuscitation = 110001,
 
-    [OccultCrescent]
-    [ParentCombo(Phantom_Freelancer)]
-    [CustomComboInfo("Occult Treasuresight", "Adds Occult Treasuresight into the rotation.", Job.ADV)]
-    Phantom_Freelancer_OccultTreasuresight = 110002,
+    //[OccultCrescent]
+    //[ParentCombo(Phantom_Freelancer)]
+    //[CustomComboInfo("Occult Treasuresight", "Adds Occult Treasuresight into the rotation.", Job.ADV)]
+    //Phantom_Freelancer_OccultTreasuresight = 110002,
 
     [OccultCrescent(OccultCrescent.JobIDs.Knight)]
     [CustomComboInfo("Knight Job Actions", "Enable this to add Knight-specific actions into the rotation.", Job.ADV)]
@@ -699,10 +699,10 @@ public enum Preset
     [CustomComboInfo("Vigilance", "Adds Vigilance into the rotation.", Job.ADV)]
     Phantom_Thief_Vigilance = 110016,
 
-    [OccultCrescent]
-    [ParentCombo(Phantom_Thief)]
-    [CustomComboInfo("Trap Detection", "Adds Trap Detection into the rotation.", Job.ADV)]
-    Phantom_Thief_TrapDetection = 110017,
+    //[OccultCrescent]
+    //[ParentCombo(Phantom_Thief)]
+    //[CustomComboInfo("Trap Detection", "Adds Trap Detection into the rotation.", Job.ADV)]
+    //Phantom_Thief_TrapDetection = 110017,
 
     [OccultCrescent]
     [ParentCombo(Phantom_Thief)]
@@ -756,15 +756,15 @@ public enum Preset
     [CustomComboInfo("Phantom Aim", "Adds Phantom Aim into the rotation.", Job.ADV)]
     Phantom_Ranger_PhantomAim = 110023,
 
-    [OccultCrescent]
-    [ParentCombo(Phantom_Ranger)]
-    [CustomComboInfo("Occult Featherfoot", "Adds Occult Featherfoot into the rotation.", Job.ADV)]
-    Phantom_Ranger_OccultFeatherfoot = 110024,
+    //[OccultCrescent]
+    //[ParentCombo(Phantom_Ranger)]
+    //[CustomComboInfo("Occult Featherfoot", "Adds Occult Featherfoot into the rotation.", Job.ADV)]
+    //Phantom_Ranger_OccultFeatherfoot = 110024,
 
-    [OccultCrescent]
-    [ParentCombo(Phantom_Ranger)]
-    [CustomComboInfo("Occult Falcon", "Adds Occult Falcon into the rotation.", Job.ADV)]
-    Phantom_Ranger_OccultFalcon = 110025,
+    //[OccultCrescent]
+    //[ParentCombo(Phantom_Ranger)]
+    //[CustomComboInfo("Occult Falcon", "Adds Occult Falcon into the rotation.", Job.ADV)]
+    //Phantom_Ranger_OccultFalcon = 110025,
 
     [OccultCrescent]
     [ParentCombo(Phantom_Ranger)]
@@ -882,25 +882,25 @@ public enum Preset
     [CustomComboInfo("Starfall", "Adds Starfall into the rotation.", Job.ADV)]
     Phantom_Oracle_Starfall = 110048,
 
-    [OccultCrescent]
-    [ParentCombo(Phantom_Oracle)]
-    [CustomComboInfo("Recuperation", "Adds Recuperation into the rotation.", Job.ADV)]
-    Phantom_Oracle_Recuperation = 110049,
+    //[OccultCrescent]
+    //[ParentCombo(Phantom_Oracle)]
+    //[CustomComboInfo("Recuperation", "Adds Recuperation into the rotation.", Job.ADV)]
+    //Phantom_Oracle_Recuperation = 110049,
 
-    [OccultCrescent]
-    [ParentCombo(Phantom_Oracle)]
-    [CustomComboInfo("Phantom Doom", "Adds Phantom Doom into the rotation.", Job.ADV)]
-    Phantom_Oracle_PhantomDoom = 110050,
+    //[OccultCrescent]
+    //[ParentCombo(Phantom_Oracle)]
+    //[CustomComboInfo("Phantom Doom", "Adds Phantom Doom into the rotation.", Job.ADV)]
+    //Phantom_Oracle_PhantomDoom = 110050,
 
-    [OccultCrescent]
-    [ParentCombo(Phantom_Oracle)]
-    [CustomComboInfo("Phantom Rejuvenation", "Adds Phantom Rejuvenation into the rotation.", Job.ADV)]
-    Phantom_Oracle_PhantomRejuvenation = 110051,
+    //[OccultCrescent]
+    //[ParentCombo(Phantom_Oracle)]
+    //[CustomComboInfo("Phantom Rejuvenation", "Adds Phantom Rejuvenation into the rotation.", Job.ADV)]
+    //Phantom_Oracle_PhantomRejuvenation = 110051,
 
-    [OccultCrescent]
-    [ParentCombo(Phantom_Oracle)]
-    [CustomComboInfo("Invulnerability", "Adds Invulnerability into the rotation.", Job.ADV)]
-    Phantom_Oracle_Invulnerability = 110052,
+    //[OccultCrescent]
+    //[ParentCombo(Phantom_Oracle)]
+    //[CustomComboInfo("Invulnerability", "Adds Invulnerability into the rotation.", Job.ADV)]
+    //Phantom_Oracle_Invulnerability = 110052,
 
     [OccultCrescent(OccultCrescent.JobIDs.Cannoneer)]
     [CustomComboInfo("Cannoneer Job Actions", "Enable this to add Cannoneer-specific actions into the rotation.", Job.ADV)]
@@ -4045,7 +4045,7 @@ public enum Preset
 
     [AutoAction(false, false)]
     [ReplaceSkill(MNK.Bootshine, MNK.LeapingOpo)]
-    [ConflictingCombos(MNK_Basic_BeastChakras, MNK_ST_AdvancedMode)]
+    [ConflictingCombos(MNK_ST_AdvancedMode)]
     [CustomComboInfo("Simple Mode - Single Target", "Replaces Bootshine with a full one-button single target rotation.\nThis is the ideal option for newcomers to the job.", Job.MNK)]
     [SimpleCombo]
     MNK_ST_SimpleMode = 9004,
@@ -4063,7 +4063,7 @@ public enum Preset
 
     [AutoAction(false, false)]
     [ReplaceSkill(MNK.Bootshine, MNK.LeapingOpo)]
-    [ConflictingCombos(MNK_Basic_BeastChakras, MNK_ST_SimpleMode)]
+    [ConflictingCombos(MNK_ST_SimpleMode)]
     [CustomComboInfo("Advanced Mode - Single Target", "Replaces Bootshine with a full one-button single target rotation.\nThese features are ideal if you want to customize the rotation.", Job.MNK)]
     [AdvancedCombo]
     MNK_ST_AdvancedMode = 9005,
@@ -4206,8 +4206,12 @@ public enum Preset
     #endregion
 
     #region Basic Combo
-
-    [ConflictingCombos(MNK_ST_AdvancedMode, MNK_ST_SimpleMode)]
+    
+    [ReplaceSkill(MNK.SnapPunch, MNK.PouncingCoeurl)]
+    [BasicCombo]
+    [CustomComboInfo("Basic Combo", "Replace Snap Punch with its combo chain.", Job.MNK)]
+    MNK_ST_BasicCombo = 9046,
+    
     [CustomComboInfo("Beast Chakra Handlers", "Merge single target GCDs which share the same beast chakra", Job.MNK)]
     MNK_Basic_BeastChakras = 9019,
 
@@ -4247,7 +4251,7 @@ public enum Preset
     
     #endregion
 
-    // Last value = 9045
+    // Last value = 9046
     // Hidden = 9300
 
     #endregion
@@ -4581,16 +4585,16 @@ public enum Preset
     PCT_ST_Advanced_Openers = 20006,
 
     [ParentCombo(PCT_ST_AdvancedMode)]
-    [CustomComboInfo("Optimal Burst Window Feature", "Uses an optimized rotation for standard burst window", Job.PCT)]
-    PCT_ST_AdvancedMode_Burst_Phase = 20010,
-
-    [ParentCombo(PCT_ST_AdvancedMode)]
     [CustomComboInfo("Subtractive Palette Feature", "Adds Subtractive Palette to the combo.", Job.PCT)]
     PCT_ST_AdvancedMode_SubtractivePalette = 20025,
 
     [ParentCombo(PCT_ST_AdvancedMode)]
     [CustomComboInfo("Blizzard in Cyan Option", "Adds Blizzard in Cyan to the combo.", Job.PCT)]
     PCT_ST_AdvancedMode_BlizzardInCyan = 20033,
+    
+    [ParentCombo(PCT_ST_AdvancedMode)]
+    [CustomComboInfo("Holy in White Option", "Adds Holy in White to the combo when it will strike 2 targets.", Job.PCT)]
+    PCT_ST_AdvancedMode_HolyinWhite = 20072,
 
     [ParentCombo(PCT_ST_AdvancedMode)]
     [CustomComboInfo("Comet in Black Option", "Adds Comet in Black to the combo.", Job.PCT)]
@@ -4675,7 +4679,7 @@ public enum Preset
 
     [ParentCombo(PCT_ST_AdvancedMode_MovementFeature)]
     [CustomComboInfo("Swiftcast Option ", "Adds Swiftcast to the combo while moving.", Job.PCT)]
-    PCT_ST_AdvancedMode_SwitfcastOption = 20032,
+    PCT_ST_AdvancedMode_SwiftcastOption = 20032,
 
     [ParentCombo(PCT_ST_AdvancedMode)]
     [CustomComboInfo("Addle Raidwide Option", "Adds Addle when Raidwide is detected casting.", Job.PCT)]
@@ -4793,7 +4797,7 @@ public enum Preset
 
     [ParentCombo(PCT_AoE_AdvancedMode_MovementFeature)]
     [CustomComboInfo("Swiftcast Option ", "Adds Swiftcast to the combo while moving.", Job.PCT)]
-    PCT_AoE_AdvancedMode_SwitfcastOption = 20065,
+    PCT_AoE_AdvancedMode_SwiftcastOption = 20065,
 
     #endregion
 
@@ -4814,6 +4818,7 @@ public enum Preset
     CombinedPaint = 20004,
 
     #endregion
+    // Last used: 20072
 
     #endregion
 
@@ -7210,8 +7215,10 @@ public enum Preset
     SMN_ST_Advanced_Combo_EgiSummons_Attacks = 17004,
 
     [ParentCombo(SMN_ST_Advanced_Combo_EgiSummons_Attacks)]
-    [CustomComboInfo("Use Ruin III instead of Emerald Ruin III when standing still between the levels of 54 and 72",
-        "Replaces Emerald Ruin III with Ruin III in the rotation when standing still and Ruin Mastery III is not active.",
+    [CustomComboInfo("Emerald Ruin III to Ruin III Option",
+        "Replaces Emerald Ruin III with Ruin III in the rotation when standing still and Ruin Mastery III is not active (54-72)." +
+        "\nIt is best, when using this, to set your Garuda to call last during those levels or it will not do other summons until you spend all garuda charges. " +
+        "\nIntended Mainly for 70 Ultimates where it would matter. (Not worth it for average use)",
         Job.SMN)]
     SMN_ST_Ruin3_Emerald_Ruin3 = 17067,
 
@@ -8007,6 +8014,16 @@ public enum Preset
     [ReplaceSkill(WAR.NascentFlash)]
     [CustomComboInfo("Nascent Flash Feature", "Replace Nascent Flash with Raw intuition when level synced below 76.", Job.WAR)]
     WAR_NascentFlash = 18017,
+    
+    [ParentCombo(WAR_NascentFlash)]
+    [CustomComboInfo("Include MouseOver Target", "If mousing over an ally in the UI, will Retarget Nascent Flash onto them.", Job.WAR)]
+    [Retargeted]
+    WAR_NascentFlash_MO = 18154,
+
+    [ParentCombo(WAR_NascentFlash)]
+    [CustomComboInfo("Include Target's Target", "If your target's target is not you or in your party, will Retarget Nascent Flash onto them.", Job.WAR)]
+    [Retargeted]
+    WAR_NascentFlash_TT = 18155,
 
     [ReplaceSkill(WAR.RawIntuition, WAR.Bloodwhetting)]
     [CustomComboInfo("Raw Intuition to Nascent Flash Retargeting Feature", "If available, will replace the Raw Intuition/Bloodwhetting with Nascent Flash if you are hard targeting an ally.", Job.WAR)]
@@ -8038,7 +8055,7 @@ public enum Preset
     WAR_RetargetHolmgang = 18130,
 
     #endregion
-    // Last value = 18153
+    // Last value = 18155
     #endregion
 
     #region WHITE MAGE
@@ -8605,6 +8622,7 @@ public enum Preset
 
     #region ASTROLOGIAN
 
+    [AutoAction(false, false)]
     [PvPCustomCombo]
     [ReplaceSkill(ASTPvP.Malefic)]
     [CustomComboInfo("Burst Mode", "Turns Fall Malefic into an all-in-one damage button.", Job.AST)]
@@ -8672,6 +8690,7 @@ public enum Preset
 
     #region BLACK MAGE
 
+    [AutoAction(false, false)]
     [PvPCustomCombo]
     [ReplaceSkill(BLMPvP.Fire, BLMPvP.Blizzard)]
     [CustomComboInfo("Burst Mode", "Turns Fire into an all-in-one button.\n- Uses Blizzard spells while moving (One Button Mode only).\n- Will use Paradox when appropriate.", Job.BLM)]
@@ -8719,6 +8738,7 @@ public enum Preset
 
     #region BARD
 
+    [AutoAction(false, false)]
     [PvPCustomCombo]
     [ReplaceSkill(BRDPvP.PowerfulShot)]
     [CustomComboInfo("Burst Mode", "Turns Powerful Shot into an all-in-one damage button.", Job.BRD)]
@@ -8769,6 +8789,7 @@ public enum Preset
 
     #region DANCER
 
+    [AutoAction(false, false)]
     [PvPCustomCombo]
     [ReplaceSkill(DNCPvP.Fountain)]
     [CustomComboInfo("Burst Mode", "Turns Fountain Combo into an all-in-one damage button.", Job.DNC)]
@@ -8810,6 +8831,7 @@ public enum Preset
 
     #region DARK KNIGHT
 
+    [AutoAction(false, false)]
     [PvPCustomCombo]
     [ReplaceSkill(DRKPvP.Souleater)]
     [CustomComboInfo("Burst Mode", "Turns Souleater Combo into an all-in-one damage button.", Job.DRK)]
@@ -8868,6 +8890,7 @@ public enum Preset
 
     #region DRAGOON
 
+    [AutoAction(false, false)]
     [PvPCustomCombo]
     [ReplaceSkill(DRGPvP.Drakesbane)]
     [CustomComboInfo("Burst Mode", "Turns Drakesbane Combo into an all-in-one damage button.", Job.DRG)]
@@ -8931,6 +8954,7 @@ public enum Preset
 
     #region Burst Mode
 
+    [AutoAction(false, false)]
     [PvPCustomCombo]
     [ReplaceSkill(GNBPvP.SolidBarrel)]
     [CustomComboInfo("Burst Mode", "Turns Solid Barrel Combo into an all-in-one damage button.", Job.GNB)]
@@ -8989,6 +9013,7 @@ public enum Preset
 
     #region MACHINIST
 
+    [AutoAction(false, false)]
     [PvPCustomCombo]
     [ReplaceSkill(MCHPvP.BlastCharge)]
     [CustomComboInfo("Burst Mode", "Turns Blast Charge into an all-in-one damage button.", Job.MCH)]
@@ -9057,6 +9082,7 @@ public enum Preset
 
     #region MONK
 
+    [AutoAction(false, false)]
     [PvPCustomCombo]
     [ReplaceSkill(MNKPvP.PhantomRush)]
     [CustomComboInfo("Burst Mode", "Turns Phantom Rush Combo into an all-in-one damage button.", Job.MNK)]
@@ -9107,6 +9133,7 @@ public enum Preset
 
     #region NINJA
 
+    [AutoAction(false, false)]
     [PvPCustomCombo]
     [ReplaceSkill(NINPvP.AeolianEdge)]
     [CustomComboInfo("Burst Mode", "Turns Aeolian Edge Combo into an all-in-one damage button.", Job.NIN)]
@@ -9215,6 +9242,7 @@ public enum Preset
 
     #region PALADIN
 
+    [AutoAction(false, false)]
     [PvPCustomCombo]
     [ReplaceSkill(PLDPvP.RoyalAuthority)]
     [CustomComboInfo("Burst Mode", "Turns Royal Authority Combo into an all-in-one damage button.", Job.PLD)]
@@ -9272,6 +9300,7 @@ public enum Preset
 
     #region PICTOMANCER
 
+    [AutoAction(false, false)]
     [PvPCustomCombo]
     [ReplaceSkill(PCTPvP.FireInRed)]
     [CustomComboInfo("Burst Mode", "Turns Fire in Red into an all-in-one damage button.", Job.PCT)]
@@ -9341,6 +9370,7 @@ public enum Preset
 
     #region REAPER
 
+    [AutoAction(false, false)]
     [PvPCustomCombo]
     [ReplaceSkill(RPRPvP.Slice)]
     [CustomComboInfo("Burst Mode",
@@ -9415,6 +9445,7 @@ public enum Preset
 
     #region RED MAGE
 
+    [AutoAction(false, false)]
     [PvPCustomCombo]
     [ReplaceSkill(RDMPvP.Jolt3)]
     [CustomComboInfo("Burst Mode", "Turns Jolt III into an all-in-one button.\n- Will not attempt to cast Jolt III while moving by replacing it with Savage Blade.", Job.RDM)]
@@ -9466,6 +9497,7 @@ public enum Preset
 
     #region SAGE
 
+    [AutoAction(false, false)]
     [PvPCustomCombo]
     [ReplaceSkill(SGEPvP.Dosis)]
     [CustomComboInfo("Burst Mode", "Turns Dosis III into an all-in-one damage button.", Job.SGE)]
@@ -9525,6 +9557,7 @@ public enum Preset
 
     #region SAMURAI
 
+    [AutoAction(false, false)]
     [PvPCustomCombo]
     [ReplaceSkill(SAMPvP.Yukikaze)]
     [CustomComboInfo("Burst Mode",
@@ -9579,6 +9612,7 @@ public enum Preset
 
     #region SCHOLAR
 
+    [AutoAction(false, false)]
     [PvPCustomCombo]
     [ReplaceSkill(SCHPvP.Broil)]
     [CustomComboInfo("Burst Mode", "Turns Broil IV into all-in-one damage button.", Job.SCH)]
@@ -9629,6 +9663,7 @@ public enum Preset
 
     #region SUMMONER
 
+    [AutoAction(false, false)]
     [PvPCustomCombo]
     [ReplaceSkill(SMNPvP.Ruin3)]
     [CustomComboInfo("Burst Mode",
@@ -9689,6 +9724,7 @@ public enum Preset
 
     #region VIPER
 
+    [AutoAction(false, false)]
     [PvPCustomCombo]
     [ReplaceSkill(VPRPvP.SteelFangs)]
     [CustomComboInfo("Burst Mode", "Turns Dual Fang Combo into an all-in-one button.", Job.VPR)]
@@ -9742,6 +9778,7 @@ public enum Preset
 
     #region WARRIOR
 
+    [AutoAction(false, false)]
     [PvPCustomCombo]
     [ReplaceSkill(WARPvP.HeavySwing)]
     [CustomComboInfo("Burst Mode", "Turns Heavy Swing into an all-in-one damage button.", Job.WAR)]
@@ -9795,6 +9832,7 @@ public enum Preset
 
     #region WHITE MAGE
 
+    [AutoAction(false, false)]
     [PvPCustomCombo]
     [ReplaceSkill(WHMPvP.Glare)]
     [CustomComboInfo("Burst Mode", "Turns Glare into an all-in-one damage button.", Job.WHM)]

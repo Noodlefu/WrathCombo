@@ -186,6 +186,7 @@ public sealed partial class WrathCombo : IDalamudPlugin
         Service.Address.Setup(Svc.SigScanner);
         MoveHook = new();
         PresetStorage.Init();
+        PresetStorage.RemoveRedundantPresets();
 
         Service.ComboCache = new CustomComboCache();
         Service.ActionReplacer = new ActionReplacer();
@@ -193,9 +194,11 @@ public sealed partial class WrathCombo : IDalamudPlugin
         ActionRetargeting = new ActionRetargeting();
         ActionWatching.Enable();
         IPC = Provider.Init();
+        PingPluginIPC.Init();
         ConflictingPluginsChecks.Begin();
 
         ConfigWindow = new ConfigWindow();
+        Settings.SanitiseSettings();
         _majorChangesWindow = new MajorChangesWindow();
         TargetHelper = new();
         ws = new();
@@ -308,8 +311,6 @@ public sealed partial class WrathCombo : IDalamudPlugin
 
             Service.Configuration.SetActionChanging();
             Configuration.ProcessSaveQueue();
-
-            PresetStorage.HandleDuplicatePresets();
 
             //Hacky workaround to ensure it's always running
             CustomComboFunctions.IsMoving();

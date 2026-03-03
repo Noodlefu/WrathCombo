@@ -61,6 +61,11 @@ internal partial class RPR
                                                                "If Above Slider is set to 1, it will NOT use the remaining charge for Gluttony, but for manual use.");
                     break;
 
+                case Preset.RPR_ST_RangedFiller:
+                    DrawAdditionalBoolChoice(RPR_ST_EnhancedHarpe,
+                        "Only use with Enhanced Harpe", "Only uses Harpe while u got Enhanced Harpe buff.");
+                    break;
+
                 case Preset.RPR_ST_ComboHeals:
                     DrawSliderInt(0, 100, RPR_STSecondWindHPThreshold,
                         $"{Role.SecondWind.ActionName()} HP percentage threshold");
@@ -148,7 +153,8 @@ internal partial class RPR
             RPR_SoDRefreshRangeBasicCombo = new("RPR_SoDRefreshRangeBasicCombo", 6);
 
         public static UserBool
-            RPR_ST_TrueNorthDynamicHoldCharge = new("RPR_ST_TrueNorthDynamicHoldCharge");
+            RPR_ST_TrueNorthDynamicHoldCharge = new("RPR_ST_TrueNorthDynamicHoldCharge"),
+            RPR_ST_EnhancedHarpe = new("RPR_ST_EnhancedHarpe");
 
         public static UserBoolArray
             RPR_SoulsowOptions = new("RPR_SoulsowOptions");
